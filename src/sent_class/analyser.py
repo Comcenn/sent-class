@@ -3,9 +3,13 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
+from logging import getLogger
 from typing import Self
 
 from transformers import Pipeline, pipeline
+
+
+LOGGER = getLogger(__name__)
 
 
 class Labels(StrEnum):
@@ -92,6 +96,7 @@ class TwitterRobertaBaseSentimentAnalyser(SentimentAnalyser):
 
     @classmethod
     def build(cls, opts: dict | None = None) -> Self:
+        LOGGER.debug("Building %s", cls.__name__)
         classifier = pipeline(
             task="text-classification",
             model=cls.model_name,
@@ -109,7 +114,9 @@ class TwitterRobertaBaseSentimentAnalyser(SentimentAnalyser):
         Raises:
             ValueError: If the classifier does not return a list of classification results.
         """
+        LOGGER.debug("Analysing text: %s", text)
         result = self.classifier(text)
+        LOGGER.debug("Analysis completed, output: %s", result)
         if not isinstance(result, list):
             raise ValueError(
                 f"Expected a list of classification results, got {type(result)}."
@@ -118,4 +125,5 @@ class TwitterRobertaBaseSentimentAnalyser(SentimentAnalyser):
             {"label": self.label_mapping[prob["label"]], "score": prob["score"]}
             for prob in result[0]
         ]
+        LOGGER.debug("Mapped labels: %s", result)
         return SentimentAnalysisResult.from_classifier(result)
